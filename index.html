@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>聪伟 · 每日经济闭环</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#2b2a27;--mute:#8a857a;--acc:#b5652b;--ok:#3f8f5a;--line:#ece8df}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:900px;margin:auto;padding:16px}
+header h1{font-size:22px;margin:8px 0 2px}header p{margin:0;color:var(--mute);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0}
+@media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.card{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.kpi .l{font-size:12px;color:var(--mute)}.kpi .v{font-size:24px;font-weight:700;margin-top:4px;color:var(--acc);word-break:break-all}
+.kpi .v.s{font-size:15px;color:var(--ink)}
+section{margin-bottom:14px}h2{font-size:16px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:500}
+.tw{overflow-x:auto}.empty{color:var(--mute);text-align:center;padding:18px;font-size:14px}
+.item{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.item:last-child{border:0}.sub{color:var(--mute);font-size:12px}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#f3e6da;color:var(--acc);white-space:nowrap;align-self:center}
+.tag.hot{background:var(--acc);color:#fff}.tag.ok{background:#e1f0e6;color:var(--ok)}
+svg{width:100%;height:auto;display:block}footer{text-align:center;color:var(--mute);font-size:12px;padding:10px}
+</style></head><body><div class="wrap">
+<header><h1>每日经济闭环</h1><p id="date"></p></header>
+<div class="kpis" id="kpis"></div>
+<section class="card"><h2>📈 近7日询盘趋势</h2><div id="trend"></div></section>
+<section class="card"><h2>🛍️ 今日上架 SKU</h2><div id="skus"></div></section>
+<section class="card"><h2>💬 询盘（课程/买画优先）</h2><div id="inq"></div></section>
+<section class="card"><h2>🎨 国外卖画进度</h2><div id="paint"></div></section>
+<footer>周日安息日 · 流程暂停</footer></div>
+
+<!-- ===== DATA START：由项目总管脚本每晚更新 ===== -->
+<script id="DATA">const DATA = {
+  "date": "2026-10-26",
+  "skuCount": 0,
+  "inquiryCount": 0,
+  "convRate": 0,
+  "bestContent": "",
+  "skus": [],
+  "inquiries": [],
+  "paintings": [],
+  "trend7": [0, 0, 0, 0, 0, 0, 0]
+};</script>
+<!-- ===== DATA END ===== -->
+
+<script>
+(function(){
+const E='<div class="empty">今天还没有数据</div>';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+$('date').textContent='日期：'+DATA.date;
+const cr=DATA.convRate||0, crs=(cr<=1&&cr>0?(cr*100).toFixed(1):(+cr).toFixed(1))+'%';
+$('kpis').innerHTML=[['上架 SKU',DATA.skuCount||0],['询盘数',DATA.inquiryCount||0],['转化率',crs],['最佳内容',DATA.bestContent||'—',1]]
+ .map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="v${k[2]?' s':''}">${esc(k[1])}</div></div>`).join('');
+const sk=DATA.skus||[];
+$('skus').innerHTML=sk.length?`<div class="tw"><table><tr><th>名称</th><th>标题</th><th>价格</th><th>版本</th><th>平台</th></tr>${sk.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.title)}</td><td>${esc(s.price)}</td><td>${esc(s.version)}</td><td>${esc(s.platform)}</td></tr>`).join('')}</table></div>`:E;
+const pri=t=>/课|画|course|paint|art/i.test(t||'')?0:1;
+const iq=(DATA.inquiries||[]).slice().sort((a,b)=>pri(a.topic)-pri(b.topic));
+$('inq').innerHTML=iq.length?iq.map(i=>`<div class="item"><div><div>${esc(i.topic)}</div><div class="sub">${esc(i.from)} · ${esc(i.platform)}</div></div><span class="tag${pri(i.topic)?'':' hot'}">${esc(i.status)}</span></div>`).join(''):E;
+const pt=DATA.paintings||[];
+$('paint').innerHTML=pt.length?pt.map(p=>`<div class="item"><div><div>${esc(p.title)}</div><div class="sub">${esc(p.platform)}</div></div><span class="tag${/上架|完成|live/i.test(p.status)?' ok':''}">${esc(p.status)}</span></div>`).join(''):E;
+const t=(DATA.trend7||[]).map(Number);
+if(!t.length||t.every(v=>!v)){$('trend').innerHTML=E;}else{
+ const W=600,H=180,P=28,m=Math.max(...t,1),n=t.length,x=i=>P+i*(W-2*P)/(n-1||1),y=v=>H-P-(v/m)*(H-2*P);
+ const pts=t.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+ const d0=new Date(DATA.date);const lb=t.map((_,i)=>{const d=new Date(d0);d.setDate(d.getDate()-(n-1-i));return (d.getMonth()+1)+'/'+d.getDate();});
+ $('trend').innerHTML=`<svg viewBox="0 0 ${W} ${H}"><polygon points="${x(0)},${H-P} ${pts} ${x(n-1)},${H-P}" fill="#b5652b22"/><polyline points="${pts}" fill="none" stroke="#b5652b" stroke-width="3"/>${t.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="#b5652b"/><text x="${x(i)}" y="${y(v)-9}" font-size="12" text-anchor="middle" fill="#2b2a27">${v}</text><text x="${x(i)}" y="${H-8}" font-size="11" text-anchor="middle" fill="#8a857a">${lb[i]}</text>`).join('')}</svg>`;}
+})();
+</script></body></html>
